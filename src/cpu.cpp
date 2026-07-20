@@ -35,9 +35,11 @@ void CPU::init() {
     PC.value = 0x0100;
     SP.value = 0xFFFE;
     ime = false;
+    currentInterrupt = NONE;
 }
 
 void CPU::fetch() {
+    checkInterrupt();
     std::cout << "Fetching Instruction at address 0x" << std::hex << PC.value << "..." << std::endl;
     instructionReg = parent.busRead(PC.value);
     PC.value++;
@@ -47,6 +49,39 @@ void CPU::fetch() {
 void CPU::decode() {
     std::cout << "Decoding Opcode 0x" << std::hex << (unsigned int)instructionReg << "..." << std::endl;
     (this->*opcodeDispatch[instructionReg])();
+}
+
+void CPU::checkInterrupt() {
+    if(ime) {
+        std::cout << "Checking for interrupts..." << std::endl;
+        uint8_t interruptEnable = parent.busRead(bus::addr::IE_REG);
+        uint8_t interruptFlag = parent.busRead(bus::addr::io::IF_REG);
+
+        for(int i = 0; i < 5; i++) {
+            bool enable = ((interruptEnable & (0x01 << i)) >> i) == 0x01;
+            bool flag = ((interruptFlag & (0x01 << i)) >> i) == 0x01;
+
+            if(enable && flag) {
+                currentInterrupt = static_cast<interrupt_type>(i);
+                serviceInterrupt(interruptFlag);
+                break;
+            }
+
+            currentInterrupt = NONE;
+        }
+    }
+}
+
+void CPU::serviceInterrupt(uint8_t interruptFlag) {
+    ime = false;
+    parent.busWrite(SP.value, PC.highByte);
+    SP.value--;
+    parent.busWrite(SP.value, PC.lowByte);
+    SP.value--;
+
+    parent.busWrite(bus::addr::io::IF_REG, interruptFlag & ~(1 << currentInterrupt));
+    PC.value = INTERRUPT_VECTORS[currentInterrupt];
+    clockCyclesElapsed += 20;
 }
 
 void CPU::op_unknown() {

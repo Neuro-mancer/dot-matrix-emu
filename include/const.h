@@ -3,7 +3,15 @@
 
 namespace timing {
     inline constexpr uint64_t CLOCK_SPEED = 4194304;
-    inline constexpr uint64_t FRAME_RATE = 60;
+    inline constexpr uint64_t FRAME_RATE = 900;
+}
+
+namespace interrupt::vectors {
+    inline constexpr uint16_t VBLANK = 0x0040;
+    inline constexpr uint16_t LCD = 0x0048;
+    inline constexpr uint16_t TIMER = 0x0050;
+    inline constexpr uint16_t SERIAL = 0x0058;
+    inline constexpr uint16_t JOYPAD = 0x0060;
 }
 
 namespace flags {
@@ -72,7 +80,7 @@ namespace bus::addr::io {
     inline constexpr uint16_t TIMA = 0xFF05;
     inline constexpr uint16_t TMA = 0xFF06;
     inline constexpr uint16_t TAC = 0xFF07;
-    inline constexpr uint16_t INTERRUPT_REG = 0xFF0F;
+    inline constexpr uint16_t IF_REG = 0xFF0F;
     inline constexpr uint16_t NR10 = 0xFF10;
     inline constexpr uint16_t NR11 = 0xFF11;
     inline constexpr uint16_t NR12 = 0xFF12;

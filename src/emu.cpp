@@ -235,7 +235,7 @@ uint8_t Emu::busRead(uint16_t addr) {
 				return timerDivRegs[reg::TMA];
 			case bus::addr::io::TAC:
 				return timerDivRegs[reg::TAC];
-			case bus::addr::io::INTERRUPT_REG:
+			case bus::addr::io::IF_REG:
 				return ifReg;
 			case bus::addr::io::NR10:
 				return audioRegs[reg::NR10];
@@ -377,7 +377,7 @@ void Emu::busWrite(uint16_t addr, uint8_t data) {
 				case bus::addr::io::TAC:
 					timerDivRegs[reg::TAC] = data;
 					break;
-				case bus::addr::io::INTERRUPT_REG:
+				case bus::addr::io::IF_REG:
 					ifReg = data;
 					break;
 				case bus::addr::io::NR10:

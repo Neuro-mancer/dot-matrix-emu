@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <array>
+#include "const.h"
 
 class Emu;
 
@@ -22,13 +23,20 @@ class CPU {
         void decode();
         uint64_t clockCyclesElapsed;
         void printRegisters();
+        enum interrupt_type {VBLANK, LCD, TIMER, SERIAL, JOYPAD, NONE};
+        const uint8_t INTERRUPT_VECTORS[5] = {interrupt::vectors::VBLANK, 
+            interrupt::vectors::LCD, interrupt::vectors::TIMER, 
+            interrupt::vectors::SERIAL, interrupt::vectors::JOYPAD};
 
     private:
         Emu& parent;
+        interrupt_type currentInterrupt;
         Register AF, BC, DE, HL, SP, PC;
         uint8_t instructionReg;
         bool ime; // interrupt master enable
         std::array<void (CPU::*)(), 512> opcodeDispatch;
+        void checkInterrupt();
+        void serviceInterrupt(uint8_t interruptFlag);
         void op_unknown();
         void op_nop();
         void op_jp_a16();
