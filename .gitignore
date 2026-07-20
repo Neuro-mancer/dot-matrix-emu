@@ -1,0 +1,6 @@
+*.gch
+*.o
+*.gb
+test
+*.out
+.vscode
