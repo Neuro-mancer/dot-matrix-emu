@@ -9,6 +9,15 @@ Emu::Emu() : cpu(*this) {
 	std::cout << "Creating emulator object..." << std::endl;
 }
 
+void Emu::emuLoop() {
+	init();
+	while(!cpu.haltExecution) {
+		cpu.fetch();
+		cpu.decode();
+		cpu.printRegisters();
+	}
+}
+
 bool Emu::readRomFile(char *romFile) {
 	std::cout << "Attempting ROM file read..." << std::endl;
 	std::ifstream file;

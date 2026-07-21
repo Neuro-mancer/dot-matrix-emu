@@ -10,7 +10,7 @@ class Emu {
 		bool readRomFile(char *romFile);
         void getHeader();
         void printHeader();
-		void init();
+        void emuLoop();
 		friend class CPU;
 		CPU cpu;
 	private:
@@ -38,6 +38,7 @@ class Emu {
         uint8_t headerChecksum;
         uint8_t globalChecksum;
 
+		void init();
         void readTitle();
         void readLogo();
         void readLicenseeCode();
