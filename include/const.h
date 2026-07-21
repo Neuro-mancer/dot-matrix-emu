@@ -14,11 +14,27 @@ namespace interrupt::vectors {
     inline constexpr uint16_t JOYPAD = 0x0060;
 }
 
+namespace interrupt::flags {
+    inline constexpr uint8_t VBLANK = 0x01;
+    inline constexpr uint8_t LCD = 0x02;
+    inline constexpr uint8_t TIMER = 0x04;
+    inline constexpr uint8_t SERIAL = 0x08;
+    inline constexpr uint8_t JOYPAD = 0x10;
+}
+
 namespace flags {
     inline constexpr uint8_t Z = 0x80;
     inline constexpr uint8_t N = 0x40;
     inline constexpr uint8_t H = 0x20;
     inline constexpr uint8_t C = 0x10;
+}
+
+namespace reg::flags {
+    inline constexpr uint8_t TAC_E = 0x04;
+    inline constexpr uint8_t TAC_CS_0 = 0x00;
+    inline constexpr uint8_t TAC_CS_1 = 0x01;
+    inline constexpr uint8_t TAC_CS_2 = 0x02;
+    inline constexpr uint8_t TAC_CS_3 = 0x03;
 }
 
 // Cartridge ROM Header addresses

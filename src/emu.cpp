@@ -366,7 +366,7 @@ void Emu::busWrite(uint16_t addr, uint8_t data) {
 					serialTransRegs[reg::SERIAL_TRANS_REG_1] = data;
 					break;
 				case bus::addr::io::DIV:
-					timerDivRegs[reg::DIV] = data;
+					timerDivRegs[reg::DIV] = 0x00;
 					break;
 				case bus::addr::io::TIMA:
 					timerDivRegs[reg::TIMA] = data;

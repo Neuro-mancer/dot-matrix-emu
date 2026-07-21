@@ -22,6 +22,8 @@ class CPU {
         void fetch();
         void decode();
         uint64_t clockCyclesElapsed;
+        uint64_t lastClockCyclesElapsed;
+        uint16_t internalCounter;
         void printRegisters();
         enum interrupt_type {VBLANK, LCD, TIMER, SERIAL, JOYPAD, NONE};
         const uint8_t INTERRUPT_VECTORS[5] = {interrupt::vectors::VBLANK, 
@@ -37,6 +39,7 @@ class CPU {
         std::array<void (CPU::*)(), 512> opcodeDispatch;
         void checkInterrupt();
         void serviceInterrupt(uint8_t interruptFlag);
+        void updateTimers();
         void op_unknown();
         void op_nop();
         void op_jp_a16();

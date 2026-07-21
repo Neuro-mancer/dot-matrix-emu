@@ -36,6 +36,9 @@ void CPU::init() {
     SP.value = 0xFFFE;
     ime = false;
     currentInterrupt = NONE;
+    lastClockCyclesElapsed = 0;
+    clockCyclesElapsed = 0;
+    internalCounter = 0;
 }
 
 void CPU::fetch() {
@@ -82,6 +85,47 @@ void CPU::serviceInterrupt(uint8_t interruptFlag) {
     parent.busWrite(bus::addr::io::IF_REG, interruptFlag & ~(1 << currentInterrupt));
     PC.value = INTERRUPT_VECTORS[currentInterrupt];
     clockCyclesElapsed += 20;
+}
+
+void CPU::updateTimers() {
+    int clockDivider;
+    uint16_t lastCounter = internalCounter;
+    internalCounter += clockCyclesElapsed - lastClockCyclesElapsed;
+    lastClockCyclesElapsed = clockCyclesElapsed;
+
+    parent.timerDivRegs[reg::DIV] = internalCounter >> 8;
+
+    if(parent.timerDivRegs[reg::TAC] & reg::flags::TAC_E) {
+        int8_t clockSelect = parent.timerDivRegs[reg::TAC] &= ~(reg::flags::TAC_E);
+        switch(clockSelect) {
+            case reg::flags::TAC_CS_0:
+                clockDivider = 1024;
+                break;
+            case reg::flags::TAC_CS_1:
+                clockDivider = 16;
+                break;
+            case reg::flags::TAC_CS_2:
+                clockDivider = 64;
+                break;
+            case reg::flags::TAC_CS_3:
+                clockDivider = 256;
+                break;
+        }
+        int ticks = (internalCounter / clockDivider) - (lastCounter / clockDivider);
+
+        while (ticks > 0) {
+            parent.timerDivRegs[reg::TIMA]++;
+
+            if(parent.timerDivRegs[reg::TIMA] == 0) {
+                parent.timerDivRegs[reg::TIMA] = parent.timerDivRegs[reg::TMA];
+                parent.busWrite(bus::addr::io::IF_REG, parent.ifReg | interrupt::flags::TIMER);
+            }
+
+            ticks--;
+        }
+
+
+    }
 }
 
 void CPU::op_unknown() {
