@@ -12,6 +12,7 @@ class Emu {
         void printHeader();
         void emuLoop();
 		friend class CPU;
+        friend class PPU;
 		CPU cpu;
 	private:
 		std::unique_ptr<uint8_t[]> romData;
