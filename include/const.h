@@ -2,8 +2,8 @@
 #include <cstdint>
 
 namespace timing {
-    inline constexpr uint64_t CLOCK_SPEED = 4194304;
-    inline constexpr uint64_t FRAME_RATE = 900;
+    inline constexpr uint64_t FRAME_RATE = 60;
+    inline constexpr uint64_t CYCLES_PER_FRAME = 70224;
 }
 
 namespace interrupt::vectors {
@@ -22,14 +22,14 @@ namespace interrupt::flags {
     inline constexpr uint8_t JOYPAD = 0x10;
 }
 
-namespace flags {
+namespace accumulator::flags {
     inline constexpr uint8_t Z = 0x80;
     inline constexpr uint8_t N = 0x40;
     inline constexpr uint8_t H = 0x20;
     inline constexpr uint8_t C = 0x10;
 }
 
-namespace reg::flags {
+namespace timer::flags {
     inline constexpr uint8_t TAC_E = 0x04;
     inline constexpr uint8_t TAC_CS_0 = 0x00;
     inline constexpr uint8_t TAC_CS_1 = 0x01;
@@ -61,7 +61,43 @@ namespace rom::header {
 
     // Validation
     inline constexpr uint16_t HEADER_CHECKSUM_ADDR   = 0x14D; // 8-bit checksum
+}
 
+namespace graphics {
+    inline constexpr unsigned int lcdWidth = 160;
+    inline constexpr unsigned int lcdHeight = 144;
+    inline constexpr uint32_t COLORS[4] = { 
+        0XFFFFFFFF, 
+        0XAAAAAAFF, 
+        0X555555FF, 
+        0X000000FF,
+    };
+    inline constexpr uint16_t BG_TILEMAP_ADDR_0 = 0x9800;
+    inline constexpr uint16_t BG_TILEMAP_ADDR_1 = 0x9C00;
+    inline constexpr uint16_t WIN_TILEMAP_ADDR_0 = BG_TILEMAP_ADDR_0;
+    inline constexpr uint16_t WIN_TILEMAP_ADDR_1 = BG_TILEMAP_ADDR_1;
+    inline constexpr uint16_t TILE_DATA_ADDR_0 = 0x8000;
+    inline constexpr uint16_t TILE_DATA_ADDR_1 = 0x9000;
+}
+
+namespace graphics::flags {
+    // lcdc
+    inline constexpr uint8_t BG_WIN_ENABLE = 0x01;
+    inline constexpr uint8_t OBJ_ENABLE = 0x02;
+    inline constexpr uint8_t OBJ_SIZE = 0x04;
+    inline constexpr uint8_t BG_TILEMAP = 0x08;
+    inline constexpr uint8_t BG_WIN_TILES = 0x10;
+    inline constexpr uint8_t WIN_ENABLE = 0x20;
+    inline constexpr uint8_t WIN_TILEMAP = 0x40;
+    inline constexpr uint8_t LCD_PPU_ENABLE = 0x80;
+
+    // lcd status
+    inline constexpr uint8_t LYC_INT_SELECT = 0x40;
+    inline constexpr uint8_t MODE_2_INT_SELECT = 0x20;
+    inline constexpr uint8_t MODE_1_INT_SELECT = 0x10;
+    inline constexpr uint8_t MODE_0_INT_SELECT = 0x08;
+    inline constexpr uint8_t LYC_LY_CMP = 0x04;
+    inline constexpr uint8_t PPU_MODE = 0x03;
 }
 
 namespace bus::addr {

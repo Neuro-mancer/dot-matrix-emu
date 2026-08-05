@@ -1,8 +1,6 @@
 #include <iostream>
 #include "emu.h"
 #include "const.h"
-#include <chrono>
-#include <thread>
 
 int main(int argc, char **argv) {
 	Emu emu;

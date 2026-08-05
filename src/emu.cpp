@@ -5,16 +5,86 @@
 #include <cstdint>
 #include <fstream>
 #include <exception> // Required for std::exception
-Emu::Emu() : cpu(*this) {
+#include <SDL2/SDL.h>
+Emu::Emu() : cpu(*this), ppu(*this) {
 	std::cout << "Creating emulator object..." << std::endl;
+}
+
+Emu::~Emu() {
+	sdlCleanup();
+}
+
+void Emu::printRegisters() {
+	cpu.printRegisters();
+	std::cout << "= I/O registers =" << std::endl;
+	std::cout << "IE: 0x" << std::hex << (unsigned int)ifReg << std::endl;
+	std::cout << "IF: 0x" << std::hex << (unsigned int)ieReg << std::endl;
+	std::cout << "LY: 0x" << std::hex << (unsigned int)lcdRegs[reg::LY] << std::endl;
+}
+
+void Emu::sdlInit() {
+	if(SDL_Init(SDL_INIT_VIDEO) != 0) {
+		std::cerr << "SDL could not initialize!" << std::endl;
+		runEmu = false;
+	}
+	window = SDL_CreateWindow("DM-Emu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 576, SDL_WINDOW_SHOWN);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	frameBuffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, graphics::lcdWidth, graphics::lcdHeight);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // draw black to the screen
+	SDL_RenderClear(renderer);
+	SDL_RenderPresent(renderer);
+} 
+
+void Emu::sdlDraw() {
+	SDL_UpdateTexture(frameBuffer, NULL, ppu.frameBuffer.get(), 160 * sizeof(uint32_t));
+	SDL_RenderClear(renderer);
+	SDL_RenderCopy(renderer, frameBuffer, NULL, NULL);
+	SDL_RenderPresent(renderer);
+}
+
+void Emu::sdlCleanup() {
+	SDL_DestroyTexture(frameBuffer);
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
+}
+
+void Emu::sdlHandleInput() {
+	while(SDL_PollEvent(&event)) {
+		if(event.type == SDL_QUIT) {
+			runEmu = false;
+		}
+	}
+}
+
+void Emu::runFrame() {
+	while(cyclesElapsed < timing::CYCLES_PER_FRAME && !cpu.haltExecution){
+		cpu.fetch();
+		cpu.decode();
+		cyclesElapsed += cpu.totalCyclesSinceLastExecution;
+		printRegisters();
+		ppu.runPPU();
+	}
+
+	cyclesElapsed -= timing::CYCLES_PER_FRAME;
 }
 
 void Emu::emuLoop() {
 	init();
-	while(!cpu.haltExecution) {
-		cpu.fetch();
-		cpu.decode();
-		cpu.printRegisters();
+	while(!cpu.haltExecution && runEmu) {
+		frameTimeStart = SDL_GetPerformanceCounter();
+		runFrame();
+		sdlHandleInput();
+		sdlDraw();
+		frameTimeEnd = SDL_GetPerformanceCounter();
+
+		double elapsed = (double)(frameTimeEnd - frameTimeStart) * 1000 / (double)SDL_GetPerformanceFrequency();
+		elapsedFrame += elapsed;
+
+		if(elapsedFrame < ((1.0 / (double)timing::FRAME_RATE) * 1000.0)){
+			SDL_Delay(16.67 - elapsedFrame);
+			elapsedFrame -= 16.67;
+		}
 	}
 }
 
@@ -143,11 +213,16 @@ void Emu::readHeaderChecksum() {
 
 void Emu::init() {
 	std::cout << "Initializing virtual console..." << std::endl;
+	elapsedFrame = 0;
+	runEmu = true;
 	cpu.init();
+	ppu.init();
+	sdlInit();
 	wram = std::make_unique<uint8_t[]>((bus::addr::WRAM_END - bus::addr::WRAM_START) + 1);
 	oam = std::make_unique<uint8_t[]>((bus::addr::OAM_END - bus::addr::OAM_START) + 1);
 	hram = std::make_unique<uint8_t[]>((bus::addr::HRAM_END - bus::addr::HRAM_START) + 1);
 	waveRam = std::make_unique<uint8_t[]>((bus::addr::io::WAVE_RAM_END - bus::addr::io::WAVE_RAM_START) + 1);
+	vram = std::make_unique<uint8_t[]>((bus::addr::VRAM_END - bus::addr::VRAM_START) + 1);
 	ieReg = 0x00;
 	joypadReg = 0xCF;
 	serialTransRegs[reg::SERIAL_TRANS_REG_0] = 0x00;
@@ -203,8 +278,7 @@ uint8_t Emu::busRead(uint16_t addr) {
 	}
 	if(addr >= bus::addr::VRAM_START && addr <= bus::addr::VRAM_END) {
 		// change once graphics implemented
-		std::cerr << "Error: VRAM not implemented; returning 0x69" << std::endl;
-		return 0x69;
+		return vram[addr - bus::addr::VRAM_START];
 	}
 	if(addr >= bus::addr::ERAM_START && addr <= bus::addr::ERAM_END) {
 		// external RAM bank (not implemented yet)
@@ -340,7 +414,7 @@ void Emu::busWrite(uint16_t addr, uint8_t data) {
 	}
 	else if(addr >= bus::addr::VRAM_START && addr <= bus::addr::VRAM_END) {
 		// change once graphics implemented
-		std::cerr << "Error: VRAM not implemented; not writing!" << std::endl;
+		vram[addr - bus::addr::VRAM_START] = data;
 	}
 	else if(addr >= bus::addr::ERAM_START && addr <= bus::addr::ERAM_END) {
 		// external RAM bank (not implemented yet)
@@ -456,7 +530,14 @@ void Emu::busWrite(uint16_t addr, uint8_t data) {
 					lcdRegs[reg::LCDC] = data;
 					break;
 				case bus::addr::io::STAT:
-					lcdRegs[reg::STAT] = data;
+					lcdRegs[reg::STAT] = (lcdRegs[reg::STAT] & ~(graphics::flags::LYC_INT_SELECT | 
+						graphics::flags::MODE_2_INT_SELECT | 
+						graphics::flags::MODE_1_INT_SELECT | 
+						graphics::flags::MODE_0_INT_SELECT)) | 
+						(data & (graphics::flags::LYC_INT_SELECT | 
+						graphics::flags::MODE_0_INT_SELECT | 
+						graphics::flags::MODE_1_INT_SELECT | 
+						graphics::flags::MODE_2_INT_SELECT));
 					break;
 				case bus::addr::io::SCY:
 					lcdRegs[reg::SCY] = data;
@@ -465,7 +546,7 @@ void Emu::busWrite(uint16_t addr, uint8_t data) {
 					lcdRegs[reg::SCX] = data;
 					break;
 				case bus::addr::io::LY:
-					lcdRegs[reg::LY] = data;
+					std::cerr << "ERROR: Unable to access register, read only!" << std::endl;
 					break;
 				case bus::addr::io::LYC:
 					lcdRegs[reg::LYC] = data;

@@ -5,11 +5,11 @@
 
 class Emu;
 
-// look into memeber initializations and passing in a reference object of emu to CPU
 class CPU {
     public:
         void init();
-        CPU(Emu& parent);
+        Emu& emu;
+        CPU(Emu& emu);
         union Register {
             uint16_t value;
             struct {
@@ -21,9 +21,7 @@ class CPU {
         bool haltExecution = false;
         void fetch();
         void decode();
-        uint64_t clockCyclesElapsed;
-        uint64_t lastClockCyclesElapsed;
-        uint16_t internalCounter;
+        uint64_t totalCyclesSinceLastExecution;
         void printRegisters();
         enum interrupt_type {VBLANK, LCD, TIMER, SERIAL, JOYPAD, NONE};
         const uint8_t INTERRUPT_VECTORS[5] = {interrupt::vectors::VBLANK, 
@@ -31,7 +29,9 @@ class CPU {
             interrupt::vectors::SERIAL, interrupt::vectors::JOYPAD};
 
     private:
-        Emu& parent;
+        uint16_t internalCounter;
+        uint64_t clockCyclesElapsed;
+        uint64_t lastClockCyclesElapsed;
         interrupt_type currentInterrupt;
         Register AF, BC, DE, HL, SP, PC;
         uint8_t instructionReg;

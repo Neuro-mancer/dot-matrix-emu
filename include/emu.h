@@ -3,10 +3,13 @@
 #include <memory>
 #include <string>
 #include "cpu.h"
+#include "ppu.h"
+#include <SDL2/SDL.h>
 
 class Emu {
 	public:
 		Emu();
+        ~Emu();
 		bool readRomFile(char *romFile);
         void getHeader();
         void printHeader();
@@ -14,12 +17,18 @@ class Emu {
 		friend class CPU;
         friend class PPU;
 		CPU cpu;
+        PPU ppu;
 	private:
+        uint64_t frameTimeStart;
+        uint64_t frameTimeEnd;
+        double elapsedFrame;
+        uint64_t cyclesElapsed;
 		std::unique_ptr<uint8_t[]> romData;
 		std::unique_ptr<uint8_t[]> wram; // work ram
 		std::unique_ptr<uint8_t[]> oam; // object attribute memory
 		std::unique_ptr<uint8_t[]> hram;
 		std::unique_ptr<uint8_t[]> waveRam;
+		std::unique_ptr<uint8_t[]> vram;
 		uint8_t ieReg; // interrupt enable
 		uint8_t ifReg; // interrupt flag
 		uint8_t joypadReg; // input
@@ -38,7 +47,18 @@ class Emu {
         uint8_t destinationCode;
         uint8_t headerChecksum;
         uint8_t globalChecksum;
+        SDL_Window* window = nullptr;
+        SDL_Renderer* renderer = nullptr;
+        SDL_Texture* frameBuffer = nullptr;
+        SDL_Event event;
+        bool runEmu;
 
+        void printRegisters();
+        void runFrame();
+        void sdlInit();
+        void sdlHandleInput();
+        void sdlCleanup();
+        void sdlDraw();
 		void init();
         void readTitle();
         void readLogo();
